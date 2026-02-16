@@ -54,10 +54,21 @@ st.caption(f"LLM: {LLM_PROVIDER} ({_model_display_name()}). Your message is stre
 
 # Ensure model is ready (for Ollama: pull if needed; OpenAI/Gemini: just need API key)
 if "ollama_ready" not in st.session_state:
-    with st.spinner("Checking LLM..."):
+    with st.spinner("Checking LLM connection..."):
         st.session_state["ollama_ready"] = ensure_model_pulled(OLLAMA_MODEL_NAME)
 if not st.session_state["ollama_ready"]:
-    st.warning(f"Could not reach LLM. For Ollama: is it running? For OpenAI/Gemini: set the API key in env.")
+    if LLM_PROVIDER == "ollama":
+        st.error(
+            f"**Ollama is not running or not reachable.**\n\n"
+            f"To use the chatbot:\n"
+            f"1. Install Ollama from [ollama.ai](https://ollama.ai)\n"
+            f"2. Start Ollama (it usually runs automatically after installation)\n"
+            f"3. Pull a model: `ollama pull {OLLAMA_MODEL_NAME}`\n"
+            f"4. Refresh this page\n\n"
+            f"Configured endpoint: `{OLLAMA_MODEL_NAME}` at `{OLLAMA_HOST}`"
+        )
+    else:
+        st.warning(f"Could not reach LLM. For {LLM_PROVIDER}: check your API key configuration.")
 
 # Chat history: list of {"role": "user"|"assistant", "content": "..."}
 if "chat_history" not in st.session_state:

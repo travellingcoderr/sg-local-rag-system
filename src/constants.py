@@ -1,6 +1,6 @@
 """
 Application configuration. Edit these values to match your environment and preferences.
-See PREREQUISITES.md step 10 for a full explanation of each variable.
+See docs/PREREQUISITES.md step 10 for a full explanation of each variable.
 """
 import os
 

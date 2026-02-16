@@ -20,7 +20,7 @@ Create a local RAG system that runs entirely on your machine—no cloud, no PII 
 
 ### Step 0: Prerequisites
 
-Install all required tools and runtimes before continuing. See **[PREREQUISITES.md](PREREQUISITES.md)** for detailed, step-by-step instructions for your OS.
+Install all required tools and runtimes before continuing. See **[docs/PREREQUISITES.md](docs/PREREQUISITES.md)** for detailed, step-by-step instructions for your OS.
 
 - **Python 3.10+**
 - **pip**
@@ -80,7 +80,7 @@ This installs Streamlit, sentence-transformers, PyTorch, OpenSearch client, Olla
 **If something fails:**
 
 - **PyTorch**: On Apple Silicon Macs you may want the MPS build; see [pytorch.org](https://pytorch.org/get-started/locally/).
-- **pytesseract**: The Python package is a wrapper. For OCR you also need the **Tesseract** binary installed on your system. See [PREREQUISITES.md](PREREQUISITES.md).
+- **pytesseract**: The Python package is a wrapper. For OCR you also need the **Tesseract** binary installed on your system. See [docs/PREREQUISITES.md](docs/PREREQUISITES.md).
 - **OpenSearch**: You don’t need to run OpenSearch yet; `opensearch-py` is just the client. Running OpenSearch (e.g. via Docker) comes in a later step.
 
 ---
@@ -112,10 +112,10 @@ If that runs without errors, your **libraries and frameworks are installed** and
    Edit `constants.py` (or your config) for embedding model and OpenSearch URL (e.g. `http://localhost:9200` when you run OpenSearch).
 
 2. **Run OpenSearch** (when you’re ready)  
-   Often done with Docker. See [PREREQUISITES.md](PREREQUISITES.md) for Docker and OpenSearch setup.
+   Often done with Docker. See [docs/PREREQUISITES.md](docs/PREREQUISITES.md) for Docker and OpenSearch setup.
 
 3. **Run Ollama**  
-   Install from [ollama.ai](https://ollama.ai) and pull a model, e.g. `ollama pull llama3.2`. See [PREREQUISITES.md](PREREQUISITES.md) for details.
+   Install from [ollama.ai](https://ollama.ai) and pull a model, e.g. `ollama pull llama3.2`. See [docs/PREREQUISITES.md](docs/PREREQUISITES.md) for details.
 
 4. **Launch the app**  
    From the repo that contains `Welcome.py`:
@@ -125,5 +125,5 @@ If that runs without errors, your **libraries and frameworks are installed** and
 
 ### Docker and switching LLM (local vs prod)
 
-- **Local:** Run the app and Ollama in Docker: see **[DOCKER.md](DOCKER.md)**. Use `docker compose up` and set `LLM_PROVIDER=ollama` (default).
+- **Local:** Run the app and Ollama in Docker: see **[docs/DOCKER.md](docs/DOCKER.md)**. Use `docker compose up` and set `LLM_PROVIDER=ollama` (default).
 - **Prod:** Use OpenAI or Gemini instead of Ollama: set `LLM_PROVIDER=openai` or `LLM_PROVIDER=gemini` and the corresponding API key (e.g. `OPENAI_API_KEY`, `GEMINI_API_KEY`). No Ollama container needed. Copy `.env.example` to `.env` and fill in the keys.

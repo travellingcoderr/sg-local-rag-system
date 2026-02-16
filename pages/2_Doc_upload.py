@@ -5,19 +5,17 @@ Documents are then searchable for RAG in the Chatbot (when RAG is enabled).
 import logging
 import os
 import time
+from typing import TYPE_CHECKING
 
 import streamlit as st
-from PyPDF2 import PdfReader
 
 from src.constants import OPENSEARCH_INDEX, TEXT_CHUNK_SIZE
-from src.embeddings import generate_embeddings, get_embedding_model
-from src.ingestion import (
-    bulk_index_documents,
-    create_index,
-    delete_documents_by_document_name,
-)
-from src.opensearch import get_opensearch_client
-from src.utils import chunk_text_by_characters, setup_logging
+from src.utils import setup_logging
+
+# Lazy imports: only load heavy dependencies when the page is actually rendered
+# This prevents Streamlit from importing them during page discovery at startup
+if TYPE_CHECKING:
+    from PyPDF2 import PdfReader
 
 setup_logging()
 logger = logging.getLogger(__name__)
@@ -84,24 +82,59 @@ def render_upload_page() -> None:
     list indexed documents, allow upload (PDF → text → chunks → embeddings → bulk index)
     and delete (from disk + OpenSearch).
     """
+    # Lazy imports: only load when page is rendered (not during Streamlit page discovery)
+    from PyPDF2 import PdfReader
+    
+    from src.embeddings import generate_embeddings, get_embedding_model
+    from src.ingestion import (
+        bulk_index_documents,
+        create_index,
+        delete_documents_by_document_name,
+    )
+    from src.opensearch import get_opensearch_client
+    from src.utils import chunk_text_by_characters
+    
     st.title("Upload Documents")
 
+    # --- Load embedding model (can be slow on first run: downloads from Hugging Face) ---
     model_loading_placeholder = st.empty()
     if "embedding_models_loaded" not in st.session_state:
         with model_loading_placeholder:
-            with st.spinner("Loading models for document processing..."):
-                get_embedding_model()
-                st.session_state["embedding_models_loaded"] = True
-        logger.info("Embedding models loaded.")
+            with st.spinner("🔄 Loading embedding model... (First time: downloading ~400MB from Hugging Face, this may take 1-2 minutes)"):
+                try:
+                    get_embedding_model()
+                    st.session_state["embedding_models_loaded"] = True
+                    logger.info("Embedding models loaded.")
+                except Exception as e:
+                    logger.exception("Failed to load embedding model")
+                    st.error(
+                        "Could not load the embedding model. "
+                        "If using a Hugging Face model name, check your network. "
+                        "For a local model, run `python scripts/download_embedding_model_hf.py` and set "
+                        "`EMBEDDING_MODEL_PATH=embedding_model` in `.env`."
+                    )
+                    model_loading_placeholder.empty()
+                    return
         model_loading_placeholder.empty()
 
     upload_dir = "uploaded_files"
     os.makedirs(upload_dir, exist_ok=True)
 
-    with st.spinner("Connecting to OpenSearch..."):
-        client = get_opensearch_client()
-    index_name = OPENSEARCH_INDEX
-    create_index(client)
+    # --- Connect to OpenSearch (fails fast if OpenSearch is not running) ---
+    try:
+        with st.spinner("Connecting to OpenSearch..."):
+            client = get_opensearch_client()
+        index_name = OPENSEARCH_INDEX
+        create_index(client)
+    except Exception as e:
+        logger.warning(f"OpenSearch connection failed: {e}")
+        st.warning(
+            "**OpenSearch is not available.** Document upload and search require OpenSearch. "
+            "Start OpenSearch (e.g. Docker or local install) at the configured host/port, then refresh this page. "
+            "See docs/PREREQUISITES.md and docs/DOCKER.md for setup."
+        )
+        st.info("Configured endpoint: see `OPENSEARCH_HOST` and `OPENSEARCH_PORT` in `.env` (default: localhost:9200).")
+        return
 
     if "documents" not in st.session_state:
         st.session_state["documents"] = []

@@ -125,9 +125,24 @@ def ensure_model_pulled(model_name: str) -> bool:
         return bool(OPENAI_API_KEY)
     if LLM_PROVIDER == "gemini":
         return bool(GEMINI_API_KEY)
+    
+    # For Ollama: check if server is reachable with timeout, then check/pull model
     try:
         import ollama
-
+        import requests
+        
+        # Quick health check: try to reach Ollama with a short timeout (3 seconds)
+        try:
+            health_url = OLLAMA_HOST.rstrip("/") + "/api/tags"
+            response = requests.get(health_url, timeout=3)
+            if response.status_code != 200:
+                logger.warning(f"Ollama server at {OLLAMA_HOST} returned status {response.status_code}. Is Ollama running?")
+                return False
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Ollama server at {OLLAMA_HOST} is not reachable: {e}. Is Ollama running?")
+            return False
+        
+        # If reachable, check/pull model
         client = ollama.Client(host=OLLAMA_HOST)
         resp = client.list()
         if isinstance(resp, dict):
@@ -141,5 +156,5 @@ def ensure_model_pulled(model_name: str) -> bool:
             client.pull(model_name)
         return True
     except Exception as e:
-        logger.warning(f"Could not list/pull model ({e}). Chat may still work if model is present.")
-        return True
+        logger.warning(f"Could not check/pull Ollama model ({e}). Is Ollama running at {OLLAMA_HOST}?")
+        return False
