@@ -1,0 +1,1 @@
+# Keeps logs/ in git; app.log is written here at runtime

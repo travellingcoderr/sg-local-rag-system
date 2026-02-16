@@ -61,6 +61,12 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
+# App uploads (RAG)
+uploaded_files/
+
+# Local embedding model (large; use scripts/download_embedding_model_hf.py to fetch)
+embedding_model/
+
 # Flask stuff:
 instance/
 .webassets-cache
