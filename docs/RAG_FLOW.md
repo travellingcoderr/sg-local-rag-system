@@ -81,6 +81,71 @@ When you upload a PDF document, here's what happens step-by-step:
 
 ---
 
+## 👀 How to view data in OpenSearch
+
+**Index name:** `documents` (from `OPENSEARCH_INDEX` in constants).
+
+### Option 1: OpenSearch Dashboards (Dev Tools)
+
+1. Start OpenSearch and OpenSearch Dashboards (see docs/PREREQUISITES.md).
+2. Open **http://localhost:5601** in your browser.
+3. Go to **Dev Tools** (wrench icon or from the menu).
+4. Run these in the console:
+
+**List index and count documents:**
+```json
+GET /documents/_count
+```
+
+**See recent documents (text and document_name only; embedding omitted for readability):**
+```json
+GET /documents/_search
+{
+  "size": 10,
+  "_source": ["text", "document_name"],
+  "sort": [ { "_id": "asc" } ]
+}
+```
+
+**Search by document name:**
+```json
+GET /documents/_search
+{
+  "query": { "term": { "document_name": "your-file.pdf" } },
+  "_source": ["text", "document_name"],
+  "size": 100
+}
+```
+
+### Option 2: curl (OpenSearch on localhost:9200)
+
+```bash
+# Count documents
+curl -s "http://localhost:9200/documents/_count"
+
+# Fetch first 5 docs (text + document_name)
+curl -s -X POST "http://localhost:9200/documents/_search" -H "Content-Type: application/json" -d'
+{"size": 5, "_source": ["text", "document_name"]}
+'
+```
+
+### Option 3: Python (same client as the app)
+
+```python
+from src.opensearch import get_opensearch_client
+from src.constants import OPENSEARCH_INDEX
+
+client = get_opensearch_client()
+r = client.search(
+    index=OPENSEARCH_INDEX,
+    body={"size": 10, "_source": ["text", "document_name"]},
+)
+for hit in r["hits"]["hits"]:
+    print(hit["_id"], hit["_source"]["document_name"], hit["_source"]["text"][:80])
+```
+
+---
+
 ## 💬 RAG Flow (When Chatbot Uses Documents)
 
 **Note:** Currently, RAG is not fully wired into the Chatbot page. The infrastructure is ready, but the chatbot needs to be updated to:

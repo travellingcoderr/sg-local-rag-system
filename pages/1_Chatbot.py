@@ -7,8 +7,8 @@ import os
 
 import streamlit as st
 
-from src.chat import ensure_model_pulled, generate_response_streaming
-from src.constants import LLM_PROVIDER, OLLAMA_MODEL_NAME, OPENAI_MODEL, GEMINI_MODEL
+from src.chat import ensure_model_pulled, generate_response_streaming, get_rag_context
+from src.constants import LLM_PROVIDER, OLLAMA_MODEL_NAME, OLLAMA_HOST, OPENAI_MODEL, GEMINI_MODEL
 from src.utils import setup_logging
 
 def _model_display_name() -> str:
@@ -38,7 +38,7 @@ st.markdown(
 if os.path.exists("images/purpleai.png"):
     st.sidebar.image("images/purpleai.png", width=180)
 
-# Sidebar: temperature (and later: RAG toggle, num results)
+# Sidebar: temperature, RAG toggle, and number of chunks
 if "temperature" not in st.session_state:
     st.session_state["temperature"] = 0.7
 st.session_state["temperature"] = st.sidebar.slider(
@@ -48,9 +48,28 @@ st.session_state["temperature"] = st.sidebar.slider(
     value=st.session_state["temperature"],
     step=0.1,
 )
+if "use_rag" not in st.session_state:
+    st.session_state["use_rag"] = True
+st.session_state["use_rag"] = st.sidebar.checkbox(
+    "Use document context (RAG)",
+    value=st.session_state["use_rag"],
+    help="Retrieve relevant chunks from your uploaded documents and use them to answer.",
+)
+if "rag_top_k" not in st.session_state:
+    st.session_state["rag_top_k"] = 5
+st.session_state["rag_top_k"] = st.sidebar.slider(
+    "Number of document chunks to use",
+    min_value=1,
+    max_value=15,
+    value=st.session_state["rag_top_k"],
+    step=1,
+    help="Only used when 'Use document context (RAG)' is on.",
+)
 
 st.title("🤖 Chatbot")
 st.caption(f"LLM: {LLM_PROVIDER} ({_model_display_name()}). Your message is streamed back below.")
+if st.session_state["use_rag"]:
+    st.caption("📄 **RAG is on:** answers use context from your uploaded documents.")
 
 # Ensure model is ready (for Ollama: pull if needed; OpenAI/Gemini: just need API key)
 if "ollama_ready" not in st.session_state:
@@ -86,6 +105,12 @@ if prompt := st.chat_input("Type your message here..."):
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    # Optional: get context from uploaded documents (RAG)
+    context = ""
+    if st.session_state["use_rag"]:
+        with st.spinner("Searching your documents..."):
+            context = get_rag_context(prompt, top_k=st.session_state["rag_top_k"])
+
     # Stream assistant reply
     with st.chat_message("assistant"):
         response_placeholder = st.empty()
@@ -95,6 +120,7 @@ if prompt := st.chat_input("Type your message here..."):
             prompt,
             chat_history=st.session_state["chat_history"][:-1],  # exclude current prompt
             temperature=st.session_state["temperature"],
+            context=context if context else None,
         )
 
         if stream is not None:

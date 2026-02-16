@@ -3,6 +3,13 @@ Application configuration. Edit these values to match your environment and prefe
 See docs/PREREQUISITES.md step 10 for a full explanation of each variable.
 """
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load .env from project root (so it works no matter where you run the app from)
+_project_root = Path(__file__).resolve().parent.parent
+load_dotenv(_project_root / ".env")
 
 # -----------------------------------------------------------------------------
 # Embedding model (for turning text into vectors / semantic search)
@@ -64,3 +71,4 @@ OPENSEARCH_PORT = int(os.environ.get("OPENSEARCH_PORT", "9200"))
 
 # Name of the index where document chunks and embeddings are stored. The app will create this index if it does not exist. You usually do not need to change this unless you want to separate different projects.
 OPENSEARCH_INDEX = "documents"
+EMBEDDING_MODEL_PATH="embedding_model"

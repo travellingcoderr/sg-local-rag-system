@@ -96,27 +96,7 @@ def render_upload_page() -> None:
     
     st.title("Upload Documents")
 
-    # --- Load embedding model (can be slow on first run: downloads from Hugging Face) ---
-    model_loading_placeholder = st.empty()
-    if "embedding_models_loaded" not in st.session_state:
-        with model_loading_placeholder:
-            with st.spinner("🔄 Loading embedding model... (First time: downloading ~400MB from Hugging Face, this may take 1-2 minutes)"):
-                try:
-                    get_embedding_model()
-                    st.session_state["embedding_models_loaded"] = True
-                    logger.info("Embedding models loaded.")
-                except Exception as e:
-                    logger.exception("Failed to load embedding model")
-                    st.error(
-                        "Could not load the embedding model. "
-                        "If using a Hugging Face model name, check your network. "
-                        "For a local model, run `python scripts/download_embedding_model_hf.py` and set "
-                        "`EMBEDDING_MODEL_PATH=embedding_model` in `.env`."
-                    )
-                    model_loading_placeholder.empty()
-                    return
-        model_loading_placeholder.empty()
-
+    # Embedding model is loaded only when user uploads a file (see below), so the page loads fast.
     upload_dir = "uploaded_files"
     os.makedirs(upload_dir, exist_ok=True)
 
@@ -185,8 +165,26 @@ def render_upload_page() -> None:
         type="pdf",
         accept_multiple_files=True,
     )
+    if "embedding_models_loaded" not in st.session_state:
+        st.caption("💡 First upload will download the embedding model (~400MB, one-time); it may take several minutes. To avoid that, run `python scripts/download_embedding_model_hf.py` and set `EMBEDDING_MODEL_PATH=embedding_model` in `.env`.")
 
     if uploaded_files:
+        # Load embedding model only when user actually uploads (avoids 5–10 min wait on page load)
+        if "embedding_models_loaded" not in st.session_state:
+            with st.spinner("🔄 Loading embedding model... (First time: downloading ~400MB from Hugging Face; may take several minutes. Pre-download with: python scripts/download_embedding_model_hf.py)"):
+                try:
+                    get_embedding_model()
+                    st.session_state["embedding_models_loaded"] = True
+                    logger.info("Embedding models loaded.")
+                except Exception as e:
+                    logger.exception("Failed to load embedding model")
+                    st.error(
+                        "Could not load the embedding model. "
+                        "If using a Hugging Face model name, check your network. "
+                        "For a local model, run `python scripts/download_embedding_model_hf.py` and set "
+                        "`EMBEDDING_MODEL_PATH=embedding_model` in `.env`."
+                    )
+                    st.stop()
         with st.spinner("Uploading and processing documents. Please wait..."):
             for uploaded_file in uploaded_files:
                 if uploaded_file.name in document_names:

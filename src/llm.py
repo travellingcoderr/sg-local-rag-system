@@ -106,12 +106,21 @@ def generate_response_streaming(
     prompt: str,
     chat_history: Optional[List[Dict[str, str]]] = None,
     temperature: float = 0.7,
+    context: Optional[str] = None,
 ) -> Optional[Iterator[Any]]:
     """
     Stream LLM response. Backend is chosen by LLM_PROVIDER (ollama | openai | gemini).
     All backends yield chunks with chunk["message"]["content"] for the UI.
+    If context is provided (from RAG), it is prepended to the user prompt so the LLM answers using your documents.
     """
     chat_history = chat_history or []
+    if context and context.strip():
+        prompt = (
+            "Use the following context from the uploaded documents to answer the question. "
+            "If the context does not contain relevant information, say so.\n\n"
+            f"Context:\n{context.strip()}\n\n"
+            f"Question: {prompt}"
+        )
     if LLM_PROVIDER == "openai":
         return _stream_openai(prompt, chat_history, temperature)
     if LLM_PROVIDER == "gemini":
