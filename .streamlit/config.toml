@@ -1,0 +1,3 @@
+[server]
+# Try to open the default browser when the app starts (may not work in some IDEs)
+headless = false
